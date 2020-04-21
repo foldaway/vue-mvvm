@@ -12,10 +12,12 @@
       <div>{{school.name}}</div>
       <div>{{school.age}}</div>
       <!--如果数据不变化 视图就不会刷新-->
-      {{getNewName}}
+      <div>{{getNewName}}</div>
       <!--在内部 会匹配 {{}}-->
 
       <button v-on:click="change">更新操作</button>
+
+      <div v-html="message"></div>
     </div>
 
     <script>
@@ -26,6 +28,7 @@
             name: "珠峰",
             age: 10,
           },
+          message:"<h1>欢迎大家</h1>"
         },
         computed: {
           getNewName() {

@@ -157,7 +157,21 @@ CompileUtil = {
     const value = this.getVal(vm, expr);
     fn(node, value);
   },
-  html() {},
+  html(node, expr, vm) {
+    // v-html="message"
+    // node是节点 expr是表达式
+
+    // 给输入框赋予value属性
+    const fn = this.updater["htmlUpdater"];
+
+    new Watcher(vm, expr, (newVal) => {
+      // 给输入框加一个观察者 如果数据更新了会触发此方法 用新值 赋给输入框
+      fn(node, newVal);
+    });
+
+    const value = this.getVal(vm, expr);
+    fn(node, value);
+  },
   getContentVal(vm, expr) {
     // 遍历表达式 将内容 重新替换成一个完整的内容 返还回去
     return expr.replace(/\{\{(.+?)\}\}/g, (...args) => {
@@ -209,7 +223,10 @@ CompileUtil = {
     modelUpdater(node, value) {
       node.value = value;
     },
-    htmlUpdater() {},
+    htmlUpdater(node, value) {
+      // xss攻击
+      node.innerHTML = value;
+    },
     textUpdater(node, value) {
       // 处理文本节点
       node.textContent = value;
@@ -308,6 +325,10 @@ class Vue {
         // 实现可以通过vm取到对应的内容
         get() {
           return data[key]; // 进行了转化操作
+        },
+        set(newVal) {
+          // 此处有坑 容易忘记写set
+          data[key] = newVal;
         },
       });
     }
