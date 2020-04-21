@@ -110,8 +110,11 @@ class Compiler {
       if (this.isDirective(name)) {
         // v-model v-html v-bind
         // console.log(node);
-        const [, directive] = name.split("-");
-        CompileUtil[directive](node, expr, this.vm);
+        const [, directive] = name.split("-"); // v-on:click
+        const [directiveName, eventName] = directive.split(":");
+
+        // 需要调用不同的指令来处理
+        CompileUtil[directiveName](node, expr, this.vm, eventName);
       }
     });
   }
@@ -177,6 +180,12 @@ CompileUtil = {
 
     const fn = this.updater["textUpdater"];
     fn(node, content);
+  },
+  on(node, expr, vm, eventName) {
+    // v-on:click = 'change' expr
+    node.addEventListener(eventName, (e) => {
+      vm[expr].call(vm, e); // this.change?
+    });
   },
   getVal(vm, expr) {
     // 根据表达式获取对应数据
@@ -257,12 +266,33 @@ class Vue {
   constructor(options) {
     this.$el = options.el;
     this.$data = options.data;
+    let computed = options.computed;
+    let methods = options.methods;
 
     // 如果根元素存在 就编译模版
     if (this.$el) {
       // 把数据 全部转化成用Object.defineProperty定义
       new Observer(this.$data);
       // console.log(this.$data);
+
+      // 内部处理computed
+      for (let key in computed) {
+        // 有依赖关系 数据
+        Object.defineProperty(this.$data, key, {
+          get: () => {
+            return computed[key].call(this);
+          },
+        });
+      }
+
+      // 处理methods
+      for (let key in methods) {
+        Object.defineProperty(this, key, {
+          get() {
+            return methods[key];
+          },
+        });
+      }
 
       // 把数据获取操作 vm上当取值操作 都代理到 vm.$data
       this.proxyVm(this.$data);
@@ -273,13 +303,13 @@ class Vue {
   }
 
   proxyVm(data) {
-    for(let key in data) {
+    for (let key in data) {
       Object.defineProperty(this, key, {
         // 实现可以通过vm取到对应的内容
-        get(){
+        get() {
           return data[key]; // 进行了转化操作
-        }
-      })
+        },
+      });
     }
   }
 }

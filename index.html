@@ -11,6 +11,11 @@
       <input type="text" v-model="school.name" />
       <div>{{school.name}}</div>
       <div>{{school.age}}</div>
+      <!--如果数据不变化 视图就不会刷新-->
+      {{getNewName}}
+      <!--在内部 会匹配 {{}}-->
+
+      <button v-on:click="change">更新操作</button>
     </div>
 
     <script>
@@ -19,9 +24,19 @@
         data: {
           school: {
             name: "珠峰",
-            age: 10
+            age: 10,
           },
         },
+        computed: {
+          getNewName() {
+            return this.school.name + "架构";
+          },
+        },
+        methods: {
+          change(){
+            this.school.name = "姜文";
+          }
+        }
       });
     </script>
   </body>
