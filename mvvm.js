@@ -43,6 +43,8 @@ class Compiler {
       if (this.isElementNode(child)) {
         // console.log('element', child)
         this.compileElement(child);
+        // 如果是元素的话 需要把自己传进去 再遍历子节点
+        this.compile(child);
       } else {
         // console.log('text', child);
         this.compileText(child);
@@ -55,9 +57,12 @@ class Compiler {
     const attributes = node.attributes; // 类数组
     [...attributes].forEach((attr) => {
       // console.log(attr);
-      const { name, value } = attr;
+      const { name, value: expr } = attr; // v-model = "school.name"
       if (this.isDirective(name)) {
-        console.log(node);
+        // v-model v-html v-bind
+        // console.log(node);
+        const [, directive] = name.split("-");
+        CompileUtil[directive](node, expr, this.vm);
       }
     });
   }
@@ -70,8 +75,51 @@ class Compiler {
   // 编译文本
   compileText(node) {
     // 判断当前文本节点中内容是否包含'{{}}'
+    const content = node.textContent;
+    // console.log(content);
+    if (/\{\{(.+?)\}\}/.test(content)) {
+      // console.log(content) // 找到所有文本
+      CompileUtil["text"](node, content, this.vm);
+    }
   }
 }
+
+CompileUtil = {
+  model(node, expr, vm) {
+    // node是节点 expr是表达式 vm是当前实例
+    const value = this.getVal(vm, expr);
+    const fn = this.updater["modelUpdater"];
+    fn(node, value);
+  },
+  html() {},
+  text(node, expr, vm) {
+    // expr=>{{a}} {{b}}
+    const content = expr.replace(/\{\{(.+?)\}\}/g, (...args) => {
+      // console.log(args)
+      return this.getVal(vm, args[1]);
+    });
+
+    const fn = this.updater["textUpdater"];
+    fn(node, content);
+  },
+  getVal(vm, expr) {
+    // 根据表达式获取对应数据
+    return expr.split(".").reduce((data, current) => {
+      return data[current];
+    }, vm.$data);
+  },
+  updater: {
+    // 把数据插入节点中
+    modelUpdater(node, value) {
+      node.value = value;
+    },
+    htmlUpdater() {},
+    textUpdater(node, value) {
+      // 处理文本节点
+      node.textContent = value;
+    },
+  },
+};
 
 // 基础类
 class Vue {
